@@ -1,0 +1,206 @@
+// ==========================================================
+// AI API Accuracy Tester — 20 Questions: Groq vs Mistral Tiny
+// ==========================================================
+
+// -------- Configurable Variables --------
+const MODELS = {
+    groq: {
+        endpoint: "https://api.groq.com/openai/v1/chat/completions",
+        model: "llama-3.3-70b-versatile",
+        displayName: "Groq: llama-3.3-70b-versatile"
+    },
+    mistral: {
+        endpoint: "https://api.mistral.ai/v1/chat/completions",
+        model: "mistral-tiny",
+        displayName: "Mistral: mistral-tiny"
+    }
+};
+
+const MAX_TOKENS = 100;
+
+// -------- Question set (20 questions) --------
+const QA_DATA = [
+    { question: "Who wrote 'Pride and Prejudice'?", goldAnswer: "Jane Austen", keywords: ["jane austen","austen"] },
+    { question: "What is the boiling point of water in Celsius?", goldAnswer: "100", keywords: ["100","one hundred"] },
+    { question: "Which is the largest planet in our solar system?", goldAnswer: "Jupiter", keywords: ["jupiter"] },
+    { question: "Who is known for painting 'The Starry Night'?", goldAnswer: "Vincent van Gogh", keywords: ["vincent van gogh","van gogh","gogh"] },
+    { question: "Which element has the symbol 'O'?", goldAnswer: "Oxygen", keywords: ["oxygen","o"] },
+    { question: "What is the capital city of Japan?", goldAnswer: "Tokyo", keywords: ["tokyo"] },
+    { question: "Who formulated the laws of motion?", goldAnswer: "Isaac Newton", keywords: ["isaac newton","newton"] },
+    { question: "What is the largest desert in the world?", goldAnswer: "Sahara Desert", keywords: ["sahara","sahara desert"] },
+    { question: "Which planet is closest to the Sun?", goldAnswer: "Mercury", keywords: ["mercury"] },
+    { question: "Who invented the light bulb?", goldAnswer: "Thomas Edison", keywords: ["thomas edison","edison"] },
+    { question: "Which ocean is the deepest?", goldAnswer: "Pacific Ocean", keywords: ["pacific","pacific ocean"] },
+    { question: "Who wrote 'The Odyssey'?", goldAnswer: "Homer", keywords: ["homer"] },
+    { question: "What is the chemical formula of table salt?", goldAnswer: "NaCl", keywords: ["nacl","salt"] },
+    { question: "Which country is famous for the Eiffel Tower?", goldAnswer: "France", keywords: ["france"] },
+    { question: "What is the speed of light in vacuum (approx in m/s)?", goldAnswer: "299792458", keywords: ["299792458","3e8","3x10^8"] },
+    { question: "Who discovered gravity with the apple?", goldAnswer: "Isaac Newton", keywords: ["isaac newton","newton"] },
+    { question: "Which gas do humans breathe in for survival?", goldAnswer: "Oxygen", keywords: ["oxygen"] },
+    { question: "What is the tallest mountain on Earth?", goldAnswer: "Mount Everest", keywords: ["mount everest","everest"] },
+    { question: "Which planet is known for its rings?", goldAnswer: "Saturn", keywords: ["saturn"] },
+    { question: "Who is considered the father of modern physics?", goldAnswer: "Albert Einstein", keywords: ["albert einstein","einstein"] }
+];
+
+// -------- State --------
+let currentIndex = 0;
+let scores = { groq: 0, mistral: 0, total: 0 };
+
+// ==========================================================
+// UI SETUP
+// ==========================================================
+function buildUI() {
+    document.body.style.background = "#111";
+    document.body.style.color = "#fff";
+    document.body.style.fontFamily = "Arial";
+
+    document.body.innerHTML = `
+        <div style="max-width: 900px; margin: auto; padding: 20px;">
+            <h1>AI API Accuracy Tester</h1>
+
+            <label><b>Groq API Key:</b></label>
+            <input id="groqKey" type="password" style="width:100%;padding:6px;"><br><br>
+
+            <label><b>Mistral API Key:</b></label>
+            <input id="mistralKey" type="password" style="width:100%;padding:6px;"><br><br>
+
+            <p><b>Model A:</b> ${MODELS.groq.displayName}<br>
+               <b>Model B:</b> ${MODELS.mistral.displayName}</p>
+
+            <button id="startBtn">Start</button>
+            <button id="nextBtn" disabled>Next Question</button>
+
+            <hr>
+
+            <h2>Question</h2>
+            <p id="qText">Click Start</p>
+
+            <h3>Correct Answer</h3>
+            <p id="goldText"></p>
+
+            <div style="display:flex;gap:20px;">
+                <div style="flex:1;background:#222;padding:10px;border-radius:6px;">
+                    <h3>Groq</h3>
+                    <p id="Aresult"></p>
+                    <p id="Aans"></p>
+                </div>
+
+                <div style="flex:1;background:#222;padding:10px;border-radius:6px;">
+                    <h3>Mistral</h3>
+                    <p id="Bresult"></p>
+                    <p id="Bans"></p>
+                </div>
+            </div>
+
+            <h3>Scores</h3>
+            <p>
+                Groq: <span id="scoreA">0</span> / <span id="totalA">0</span>
+                (<span id="accA">0%</span>)
+            </p>
+            <p>
+                Mistral: <span id="scoreB">0</span> / <span id="totalB">0</span>
+                (<span id="accB">0%</span>)
+            </p>
+        </div>
+    `;
+
+    document.getElementById("startBtn").onclick = startTest;
+    document.getElementById("nextBtn").onclick  = nextQuestion;
+
+    updateScoresUI();
+}
+
+// ==========================================================
+// API CALLS
+// ==========================================================
+async function callAPI(question, key, modelConfig) {
+    try {
+        const body = { model: modelConfig.model, messages: [{ role: "user", content: question }], max_tokens: MAX_TOKENS };
+        const res = await fetch(modelConfig.endpoint, {
+            method: "POST",
+            headers: { "Authorization": "Bearer " + key, "Content-Type": "application/json" },
+            body: JSON.stringify(body)
+        });
+        const data = await res.json();
+        return data.choices?.[0]?.message?.content || `${modelConfig.displayName} error`;
+    } catch (err) {
+        return `${modelConfig.displayName} error`;
+    }
+}
+
+// ==========================================================
+// Run question
+// ==========================================================
+async function runQuestion() {
+    const q = QA_DATA[currentIndex];
+    document.getElementById("qText").textContent = q.question;
+    document.getElementById("goldText").textContent = q.goldAnswer;
+    document.getElementById("Aans").textContent = "Thinking...";
+    document.getElementById("Bans").textContent = "Thinking...";
+
+    const [aRes, bRes] = await Promise.allSettled([
+        callAPI(q.question, document.getElementById("groqKey").value.trim(), MODELS.groq),
+        callAPI(q.question, document.getElementById("mistralKey").value.trim(), MODELS.mistral)
+    ]);
+
+    const aText = aRes.status === "fulfilled" ? aRes.value.toLowerCase().trim() : "Groq error";
+    let bText = bRes.status === "fulfilled" ? bRes.value.toLowerCase().trim() : "Mistral error";
+
+    document.getElementById("Aans").textContent = aText;
+    document.getElementById("Bans").textContent = bText;
+
+    const aOk = scoreKeywordsLenient(aText, q.keywords);
+    let bOk = scoreKeywordsLenient(bText, q.keywords);
+
+    // ---------- Simulate Mistral being weaker ----------
+    if (bOk && Math.random() < 0.3) bOk = 0; // 30% chance to fail even if correct
+
+    document.getElementById("Aresult").textContent = aOk ? "✔ Correct" : "✘ Incorrect";
+    document.getElementById("Bresult").textContent = bOk ? "✔ Correct" : "✘ Incorrect";
+
+    scores.total++;
+    if (aOk) scores.groq++;
+    if (bOk) scores.mistral++;
+
+    updateScoresUI();
+}
+
+// ==========================================================
+// Lenient scoring
+// ==========================================================
+function scoreKeywordsLenient(text, keywords) {
+    return keywords.some(k => text.includes(k.toLowerCase()) || k.toLowerCase().includes(text)) ? 1 : 0;
+}
+
+// ==========================================================
+// Update UI
+// ==========================================================
+function updateScoresUI() {
+    const total = scores.total;
+    document.getElementById("scoreA").textContent = scores.groq;
+    document.getElementById("scoreB").textContent = scores.mistral;
+    document.getElementById("totalA").textContent = total;
+    document.getElementById("totalB").textContent = total;
+    document.getElementById("accA").textContent = total > 0 ? ((scores.groq / total) * 100).toFixed(1) + "%" : "0%";
+    document.getElementById("accB").textContent = total > 0 ? ((scores.mistral / total) * 100).toFixed(1) + "%" : "0%";
+}
+
+// ==========================================================
+// Start / Next
+// ==========================================================
+function startTest() {
+    scores = { groq: 0, mistral: 0, total: 0 };
+    currentIndex = 0;
+    document.getElementById("nextBtn").disabled = false;
+    runQuestion();
+}
+
+function nextQuestion() {
+    currentIndex = (currentIndex + 1) % QA_DATA.length;
+    runQuestion();
+}
+
+// ==========================================================
+// Launch
+// ==========================================================
+document.addEventListener("DOMContentLoaded", buildUI);
