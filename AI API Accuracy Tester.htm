@@ -1,0 +1,71 @@
+
+<!-- saved from url=(0053)https://run.ancientbrain.com/run.php?world=6341795657 -->
+<html><head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+
+<link id="favicon" rel="icon" href="https://run.ancientbrain.com/favicon.ico"> 
+
+
+<!-- for mobile: -->
+
+<meta name="viewport" content="width=device-width, initial-scale=1.0"> 
+ 
+ 
+
+
+ <script> document.title = ' Run World: New World [Ancient Brain]'; </script><title> Run World: New World [Ancient Brain]</title> 
+
+<script> Object.freeze ( document.title );	</script> <script> function scriptloaderror() { location.href = 'https://ancientbrain.com/500.php' ; } </script>  <!--<base target="_blank">--><base href="." target="_blank">  
+  
+<link rel="stylesheet" type="text/css" href="./AI API Accuracy Tester_files/run.css">
+
+</head>
+
+<body style="background: rgb(17, 17, 17); color: rgb(255, 255, 255); font-family: Arial;">
+        <div style="max-width: 900px; margin: auto; padding: 20px;">
+            <h1>AI API Accuracy Tester</h1>
+
+            <label><b>Groq API Key:</b></label>
+            <input id="groqKey" type="password" style="width:100%;padding:6px;"><br><br>
+
+            <label><b>Mistral API Key:</b></label>
+            <input id="mistralKey" type="password" style="width:100%;padding:6px;"><br><br>
+
+            <p><b>Model A:</b> Groq: llama-3.3-70b-versatile<br>
+               <b>Model B:</b> Mistral: mistral-tiny</p>
+
+            <button id="startBtn">Start</button>
+            <button id="nextBtn" disabled="">Next Question</button>
+
+            <hr>
+
+            <h2>Question</h2>
+            <p id="qText">Click Start</p>
+
+            <h3>Correct Answer</h3>
+            <p id="goldText"></p>
+
+            <div style="display:flex;gap:20px;">
+                <div style="flex:1;background:#222;padding:10px;border-radius:6px;">
+                    <h3>Groq</h3>
+                    <p id="Aresult"></p>
+                    <p id="Aans"></p>
+                </div>
+
+                <div style="flex:1;background:#222;padding:10px;border-radius:6px;">
+                    <h3>Mistral</h3>
+                    <p id="Bresult"></p>
+                    <p id="Bans"></p>
+                </div>
+            </div>
+
+            <h3>Scores</h3>
+            <p>
+                Groq: <span id="scoreA">0</span> / <span id="totalA">0</span>
+                (<span id="accA">0%</span>)
+            </p>
+            <p>
+                Mistral: <span id="scoreB">0</span> / <span id="totalB">0</span>
+                (<span id="accB">0%</span>)
+            </p>
+        </div>
+    </body></html>
